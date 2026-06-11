@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-
   typescript: {
     ignoreBuildErrors: true,
   },
-
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -18,39 +13,29 @@ const nextConfig = {
       { hostname: "cryptologos.cc" },
       { hostname: "firebasestorage.googleapis.com" },
       { hostname: "images.unsplash.com" },
+      { hostname: "i.seadn.io" },
     ],
     formats: ["image/webp", "image/avif"],
   },
-
   env: {
     NEXT_PUBLIC_COINGECKO_API_URL: "https://api.coingecko.com/api/v3",
     NEXT_PUBLIC_BINANCE_WS_URL: "wss://stream.binance.com:9443/ws",
     NEXT_PUBLIC_DEFILLAMA_API_URL: "https://api.llama.fi",
   },
-
+  turbopack: {
+    resolveExtensions: [".tsx", ".ts", ".jsx", ".js"],
+  },
   async headers() {
     return [
       {
         source: "/api/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
-          },
+          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
         ],
       },
     ];
-  },
-
-  webpack: (config) => {
-    config.externals.push("pino-pretty", "lokijs", "encoding");
-    return config;
   },
 };
 
