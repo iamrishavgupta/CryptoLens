@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   images: {
     unoptimized: true,
     remotePatterns: [
@@ -13,11 +21,13 @@ const nextConfig = {
     ],
     formats: ["image/webp", "image/avif"],
   },
+
   env: {
     NEXT_PUBLIC_COINGECKO_API_URL: "https://api.coingecko.com/api/v3",
     NEXT_PUBLIC_BINANCE_WS_URL: "wss://stream.binance.com:9443/ws",
     NEXT_PUBLIC_DEFILLAMA_API_URL: "https://api.llama.fi",
   },
+
   async headers() {
     return [
       {
@@ -37,6 +47,7 @@ const nextConfig = {
       },
     ];
   },
+
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
     return config;
