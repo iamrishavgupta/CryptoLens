@@ -9,10 +9,17 @@ export const metadata: Metadata = {
 
 async function getTrendingStats() {
   try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      `https://${process.env.VERCEL_URL}`;
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/market?per_page=100&page=1`,
-      { next: { revalidate: 60 } }
+      `${baseUrl}/api/market?per_page=100&page=1`,
+      {
+        next: { revalidate: 60 },
+      }
     );
+
     const json = await res.json();
 
     if (json.success && json.data.length > 0) {
@@ -29,7 +36,11 @@ async function getTrendingStats() {
 
       const topGainer = coins.reduce((best: any, coin: any) => {
         if (coin.priceChangePercentage24h == null) return best;
-        if (!best || coin.priceChangePercentage24h > best.priceChangePercentage24h)
+        if (
+          !best ||
+          coin.priceChangePercentage24h >
+            best.priceChangePercentage24h
+        )
           return coin;
         return best;
       }, null);
@@ -61,7 +72,11 @@ async function getTrendingStats() {
   return {
     totalTrending: 0,
     avgPriceChange: 0,
-    topGainer: { name: "N/A", symbol: "N/A", change: 0 },
+    topGainer: {
+      name: "N/A",
+      symbol: "N/A",
+      change: 0,
+    },
     totalSearchVolume: 0,
     updatedAt: new Date().toISOString(),
   };
