@@ -1,5 +1,6 @@
 import { TrendingPageClient } from "@/components/client/pages/TrendingPageClient";
 import { Metadata } from "next";
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Trending Cryptocurrencies | CryptoTracker",

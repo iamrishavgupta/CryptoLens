@@ -1,4 +1,5 @@
 import React from "react";
+export const dynamic = "force-dynamic";
 import HomeLayout from "@/components/layout/HomeLayout";
 import { HomePageClient } from "@/components/client/pages/HomePageClient";
 

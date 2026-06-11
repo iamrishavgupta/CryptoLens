@@ -1,4 +1,5 @@
 import { MarketPageClient } from "@/components/client/pages/MarketPageClient";
+export const dynamic = "force-dynamic";
 
 async function getGlobalData() {
   try {
