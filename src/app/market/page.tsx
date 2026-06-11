@@ -2,11 +2,17 @@ import { MarketPageClient } from "@/components/client/pages/MarketPageClient";
 
 async function getGlobalData() {
   try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      `https://${process.env.VERCEL_URL}`;
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/market/global`,
+      `${baseUrl}/api/market/global`,
       { next: { revalidate: 300 } }
     );
+
     const json = await res.json();
+
     if (json.success) {
       return {
         totalMarketCap: json.data.totalMarketCap,
@@ -31,7 +37,10 @@ async function getGlobalData() {
     marketCapChange24h: 0,
     bitcoinDominance: 0,
     ethereumDominance: 0,
-    fearGreedIndex: { value: 0, classification: "N/A" },
+    fearGreedIndex: {
+      value: 0,
+      classification: "N/A",
+    },
   };
 }
 
