@@ -4,11 +4,17 @@ import { HomePageClient } from "@/components/client/pages/HomePageClient";
 
 async function getTrendingCoins() {
   try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      `https://${process.env.VERCEL_URL}`;
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/market?per_page=10&page=1`,
+      `${baseUrl}/api/market?per_page=10&page=1`,
       { next: { revalidate: 60 } }
     );
+
     const json = await res.json();
+
     if (json.success) {
       return json.data.map((coin: any) => ({
         id: coin.id,
@@ -27,6 +33,7 @@ async function getTrendingCoins() {
   } catch (e) {
     console.error("Failed to fetch trending coins:", e);
   }
+
   return [];
 }
 
