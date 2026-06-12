@@ -58,13 +58,13 @@ export function TrendingPageClient({ trendingStats }: TrendingPageClientProps) {
         isMobileMenuOpen={sidebarOpen}
         setIsMobileMenuOpen={setSidebarOpen}
       />
-      <div className="container mx-auto px-4">
-        <div className="w-full max-w-[1536px] mx-auto flex">
+      <div className="w-full px-3 sm:px-4">
+  <div className="w-full max-w-[1536px] mx-auto flex">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 p-5 space-y-6">
+          <main className="flex-1 p-3 sm:p-5 space-y-4 sm:space-y-6 min-w-0">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-2">
@@ -123,10 +123,10 @@ export function TrendingPageClient({ trendingStats }: TrendingPageClientProps) {
             {/* Trending Coins Table */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Flame className="h-5 w-5 text-orange-500" />
-                  Trending Coins by Market Cap
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2 text-base">
+  <Flame className="h-5 w-5 text-orange-500" />
+  <span className="truncate">Trending Coins</span>
+</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {isLoading ? (

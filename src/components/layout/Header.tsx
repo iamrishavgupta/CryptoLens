@@ -205,14 +205,14 @@ export const Header: React.FC<HeaderProps> = ({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link href="/login">Sign In</Link>
-                    </Button>
-                    <Button size="sm" asChild>
-                      <Link href="/register">Sign Up</Link>
-                    </Button>
-                  </div>
+                 <div className="flex items-center gap-1">
+  <Button variant="ghost" size="sm" asChild className="px-2 text-xs sm:text-sm sm:px-3">
+    <Link href="/login">Sign In</Link>
+  </Button>
+  <Button size="sm" asChild className="px-2 text-xs sm:text-sm sm:px-3 whitespace-nowrap">
+    <Link href="/register">Sign Up</Link>
+  </Button>
+</div>
                 )}
               </div>
 
@@ -275,6 +275,19 @@ export const Header: React.FC<HeaderProps> = ({
               )}
 
               {/* Mobile menu toggle for non-logged in users */}
+
+
+            {!user && (
+  <div className="flex items-center gap-1 md:hidden">
+    <Button variant="ghost" size="sm" asChild className="px-2 text-xs">
+      <Link href="/login">Sign In</Link>
+    </Button>
+    <Button size="sm" asChild className="px-2 text-xs">
+      <Link href="/register">Sign Up</Link>
+    </Button>
+  </div>
+)}
+
             </div>
           </div>
         </div>
@@ -284,8 +297,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full container mx-auto">
-        <div className="flex h-14 items-center justify-between">
+  <div className="w-full px-3 sm:px-4">
+    <div className="flex h-14 items-center justify-between">
           {/* Logo and Brand */}
           <div className="flex items-center">
             {setIsMobileMenuOpen && (
@@ -324,7 +337,7 @@ export const Header: React.FC<HeaderProps> = ({
           </nav>
 
           {/* Right Side Actions */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Portfolio and Watchlist for logged in users */}
             {user && (
               <>

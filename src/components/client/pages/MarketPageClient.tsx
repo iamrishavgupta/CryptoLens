@@ -65,14 +65,14 @@ export function MarketPageClient({ globalData }: MarketPageClientProps) {
         isMobileMenuOpen={sidebarOpen}
         setIsMobileMenuOpen={setSidebarOpen}
       />
-      <div className="container mx-auto px-4">
-        <div className="w-full max-w-[1536px] mx-auto flex">
+      <div className="w-full px-3 md:px-4">
+  <div className="w-full max-w-[1536px] mx-auto flex">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 p-5">
+          <main className="flex-1 p-3 sm:p-5 min-w-0">
             <div className="space-y-6">
 
               {/* Header */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex flex-col gap-3">
                 <div>
                   <h1 className="text-3xl font-bold">Cryptocurrency Market</h1>
                   <p className="text-muted-foreground mt-1">
@@ -107,7 +107,7 @@ export function MarketPageClient({ globalData }: MarketPageClientProps) {
               </div>
 
               {/* Market Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -116,7 +116,8 @@ export function MarketPageClient({ globalData }: MarketPageClientProps) {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold">
+                      <span className="text-xl sm:text-2xl font-bold">
+            
                         {formatLargeNumber(globalData.totalMarketCap)}
                       </span>
                       <div className={`flex items-center space-x-1 ${isMarketPositive ? "text-green-500" : "text-red-500"}`}>
@@ -167,22 +168,22 @@ export function MarketPageClient({ globalData }: MarketPageClientProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold">
-                        {globalData.fearGreedIndex.value}
-                      </span>
-                      <Badge
-                        className={
-                          globalData.fearGreedIndex.value > 75
-                            ? "bg-green-100 text-green-800"
-                            : globalData.fearGreedIndex.value > 50
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }
-                      >
-                        {globalData.fearGreedIndex.classification}
-                      </Badge>
-                    </div>
+                   <div className="flex flex-col gap-1">
+  <span className="text-xl sm:text-2xl font-bold">
+    {globalData.fearGreedIndex.value}
+  </span>
+  <Badge
+    className={
+      globalData.fearGreedIndex.value > 75
+        ? "bg-green-100 text-green-800 w-fit"
+        : globalData.fearGreedIndex.value > 50
+        ? "bg-yellow-100 text-yellow-800 w-fit"
+        : "bg-red-100 text-red-800 w-fit"
+    }
+  >
+    {globalData.fearGreedIndex.classification}
+  </Badge>
+</div>
                   </CardContent>
                 </Card>
               </div>
