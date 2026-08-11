@@ -1,84 +1,105 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Search, X } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-  Search, TrendingUp, TrendingDown,
-  Star, ExternalLink, Shield, Globe, Volume2, X,
-} from "lucide-react";
-import Image from "next/image";
 
 interface Exchange {
   id: string;
   name: string;
   image: string;
   trust_score: number;
+  trust_score_rank: number;
   trade_volume_24h_btc: number;
   country: string | null;
   year_established: number | null;
   url: string;
   description: string | null;
-  has_trading_incentive: boolean;
 }
+
+interface ExchangesResponse {
+  success: boolean;
+  data: Exchange[];
+  btcPrice: number;
+  error?: string;
+}
+
+const formatUsd = (value: number) => {
+  if (!Number.isFinite(value)) return "$0";
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+  if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
+  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+};
 
 export default function ExchangesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [btcPrice, setBtcPrice] = useState(60000);
   const [isLoading, setIsLoading] = useState(true);
-  const [btcPrice, setBtcPrice] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch BTC price to convert volume
-    fetch("/api/market?per_page=1&page=1")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) setBtcPrice(json.data[0]?.currentPrice || 60000);
-      })
-      .catch(() => setBtcPrice(60000));
+  const loadExchanges = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-    // Fetch exchanges from CoinGecko
-    fetch(
-      "https://api.coingecko.com/api/v3/exchanges?per_page=50&page=1",
-      {
-        headers: {
-          Accept: "application/json",
-          "x-cg-demo-api-key": process.env.NEXT_PUBLIC_COINGECKO_API_KEY || "",
-        },
+    try {
+      const response = await fetch("/api/exchanges");
+      const payload: ExchangesResponse = await response.json();
+
+      if (!response.ok || !payload.success || !Array.isArray(payload.data)) {
+        throw new Error(payload.error || "Unable to load exchanges");
       }
-    )
-      .then((r) => r.json())
-      .then((data) => {
-        setExchanges(data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+
+      setExchanges(payload.data);
+      setBtcPrice(Number(payload.btcPrice) || 60000);
+    } catch (loadError) {
+      setExchanges([]);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load exchanges"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const formatVolume = (btcVolume: number) => {
-    const usd = btcVolume * btcPrice;
-    if (usd >= 1e9) return `$${(usd / 1e9).toFixed(2)}B`;
-    if (usd >= 1e6) return `$${(usd / 1e6).toFixed(2)}M`;
-    return `$${usd.toLocaleString()}`;
-  };
+  useEffect(() => {
+    loadExchanges();
+  }, [loadExchanges]);
 
-  const getTrustScoreBadge = (score: number) => {
-    if (score >= 8) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
-    if (score >= 5) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-  };
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return exchanges;
+    return exchanges.filter(
+      (exchange) =>
+        exchange.name.toLowerCase().includes(query) ||
+        (exchange.country || "").toLowerCase().includes(query)
+    );
+  }, [exchanges, search]);
 
-  const totalVolume = exchanges.reduce((sum, e) => sum + e.trade_volume_24h_btc * btcPrice, 0);
-
-  const filtered = exchanges.filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
-    (e.country || "").toLowerCase().includes(search.toLowerCase())
+  const totalVolume = useMemo(
+    () =>
+      exchanges.reduce(
+        (sum, exchange) =>
+          sum + exchange.trade_volume_24h_btc * btcPrice,
+        0
+      ),
+    [exchanges, btcPrice]
   );
+
+  const averageTrust = exchanges.length
+    ? exchanges.reduce((sum, exchange) => sum + exchange.trust_score, 0) /
+      exchanges.length
+    : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,30 +108,32 @@ export default function ExchangesPage() {
         isMobileMenuOpen={sidebarOpen}
         setIsMobileMenuOpen={setSidebarOpen}
       />
-      <div className="container mx-auto px-4">
-        <div className="w-full max-w-[1536px] mx-auto flex">
+      <div className="w-full px-0 sm:px-4">
+        <div className="mx-auto flex w-full max-w-[1536px]">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 p-5">
-            <div className="space-y-6">
-
-              {/* Header */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <main className="min-w-0 flex-1 overflow-x-hidden px-3 py-3 sm:p-5">
+            <div className="space-y-5 sm:space-y-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <h1 className="text-3xl font-bold">Cryptocurrency Exchanges</h1>
-                  <p className="text-muted-foreground mt-2">
-                    Compare and discover the best cryptocurrency exchanges worldwide
+                  <h1 className="text-2xl font-bold sm:text-3xl">
+                    Cryptocurrency Exchanges
+                  </h1>
+                  <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                    Compare leading exchanges by volume and trust score
                   </p>
                 </div>
-                <div className="relative max-w-md w-full">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <div className="relative w-full lg:w-96">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Search exchanges..."
-                    className="pl-10 pr-9"
+                    className="pl-9 pr-9"
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(event) => setSearch(event.target.value)}
                   />
                   {search && (
                     <button
+                      type="button"
+                      aria-label="Clear search"
                       onClick={() => setSearch("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2"
                     >
@@ -120,149 +143,142 @@ export default function ExchangesPage() {
                 </div>
               </div>
 
-              {/* Summary Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Exchanges</CardTitle>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Total Exchanges
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{isLoading ? "..." : `${exchanges.length}+`}</div>
-                    <p className="text-xs text-muted-foreground">Tracked globally</p>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : exchanges.length}
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">24h Volume</CardTitle>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Reported Volume
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {isLoading ? "..." : totalVolume >= 1e9 ? `$${(totalVolume / 1e9).toFixed(1)}B` : "..."}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Combined volume</p>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="truncate text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : formatUsd(totalVolume)}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Top Exchange
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="truncate text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : exchanges[0]?.name || "N/A"}
+                    </p>
                   </CardContent>
                 </Card>
 
                 <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Top Exchange</CardTitle>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Avg Trust Score
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{isLoading ? "..." : exchanges[0]?.name || "N/A"}</div>
-                    <p className="text-xs text-muted-foreground">By trading volume</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Avg Trust Score</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {isLoading ? "..." : (exchanges.reduce((s, e) => s + (e.trust_score || 0), 0) / exchanges.length).toFixed(1)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Out of 10</p>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : averageTrust.toFixed(1)}
+                    </p>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Exchanges List */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">
+              <section>
+                <h2 className="mb-4 hidden text-xl font-semibold sm:block">
                   Top Exchanges by Volume
-                  {search && <span className="text-base font-normal text-muted-foreground ml-2">— "{search}"</span>}
                 </h2>
 
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-20 text-muted-foreground">
+                  <div className="py-20 text-center text-muted-foreground">
                     Loading live exchange data...
                   </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center gap-3 py-16 text-center">
+                    <p className="text-sm text-red-500">{error}</p>
+                    <Button variant="outline" size="sm" onClick={loadExchanges}>
+                      Try again
+                    </Button>
+                  </div>
                 ) : filtered.length === 0 ? (
-                  <div className="text-center py-20 text-muted-foreground">
+                  <div className="py-20 text-center text-muted-foreground">
                     No exchanges found for &quot;{search}&quot;
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {filtered.map((exchange, index) => (
-                      <Card key={exchange.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                            <div className="flex items-center space-x-4 flex-1">
-                              <div className="flex items-center space-x-3">
-                                <span className="text-muted-foreground font-mono text-sm w-6">
-                                  #{index + 1}
-                                </span>
-                                <div className="relative w-10 h-10">
-                                  <Image
-                                    src={exchange.image}
-                                    alt={exchange.name}
-                                    fill
-                                    className="rounded-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = "/placeholder.png";
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold text-lg">{exchange.name}</h3>
-                                  <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {exchange.description || "Cryptocurrency exchange"}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
+                  <div className="w-full max-w-full overflow-hidden border-0">
+                    <table className="w-full table-fixed">
+                      <thead>
+                        <tr className="text-[10px] text-muted-foreground sm:text-xs">
+                          <th className="w-[10%] px-1 py-3 text-left sm:px-4">#</th>
+                          <th className="w-[43%] px-1 py-3 text-left sm:px-4">Exchange</th>
+                          <th className="w-[31%] px-1 py-3 text-right sm:px-4">Reported Volume</th>
+                          <th className="w-[16%] px-1 py-3 text-right sm:px-4">Trust</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((exchange, index) => {
+                          const volumeUsd =
+                            exchange.trade_volume_24h_btc * btcPrice;
+                          const rank = exchange.trust_score_rank || index + 1;
 
-                            <div className="flex flex-wrap gap-6 lg:gap-8">
-                              <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-1">Trust Score</div>
-                                <Badge className={getTrustScoreBadge(exchange.trust_score)}>
-                                  {exchange.trust_score}/10
-                                </Badge>
-                              </div>
-
-                              <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-1">24h Volume</div>
-                                <div className="font-semibold">{formatVolume(exchange.trade_volume_24h_btc)}</div>
-                              </div>
-
-                              <div className="text-center">
-                                <div className="text-xs text-muted-foreground mb-1">Country</div>
-                                <div className="font-semibold text-sm">{exchange.country || "N/A"}</div>
-                              </div>
-
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(exchange.url, "_blank")}
+                          return (
+                            <tr key={exchange.id}>
+                              <td className="px-1 py-4 text-[11px] text-muted-foreground sm:px-4 sm:py-5 sm:text-sm">
+                                {rank}
+                              </td>
+                              <td className="px-1 py-4 sm:px-4 sm:py-5">
+                                <a
+                                  href={exchange.url || undefined}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex min-w-0 items-center gap-2 sm:gap-3"
                                 >
-                                  <ExternalLink className="w-4 h-4 mr-1" />
-                                  Visit
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="mt-4 pt-4 border-t border-muted flex flex-wrap gap-4 text-sm text-muted-foreground">
-                            {exchange.year_established && (
-                              <div className="flex items-center">
-                                <Globe className="w-4 h-4 mr-1" />
-                                Established {exchange.year_established}
-                              </div>
-                            )}
-                            <div className="flex items-center">
-                              <Shield className="w-4 h-4 mr-1" />
-                              API Available
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                                  <div className="relative h-8 w-8 flex-shrink-0 sm:h-10 sm:w-10">
+                                    {exchange.image ? (
+                                      <Image
+                                        src={exchange.image}
+                                        alt={exchange.name}
+                                        fill
+                                        sizes="40px"
+                                        className="rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="h-full w-full rounded-full bg-muted" />
+                                    )}
+                                  </div>
+                                  <span className="line-clamp-2 text-xs font-medium leading-tight sm:text-base">
+                                    {exchange.name}
+                                  </span>
+                                </a>
+                              </td>
+                              <td className="overflow-hidden text-ellipsis whitespace-nowrap px-1 py-4 text-right text-[11px] sm:px-4 sm:py-5 sm:text-base">
+                                {formatUsd(volumeUsd)}
+                              </td>
+                              <td className="px-1 py-4 text-right sm:px-4 sm:py-5">
+                                <span className="inline-flex whitespace-nowrap rounded-md bg-emerald-950/80 px-1.5 py-1 text-[10px] font-medium text-emerald-500 sm:px-3 sm:text-sm">
+                                  {exchange.trust_score}/10
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-              </div>
-
+              </section>
             </div>
           </main>
         </div>

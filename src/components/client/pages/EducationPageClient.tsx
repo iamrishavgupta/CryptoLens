@@ -333,9 +333,22 @@ export default function EducationPageClient() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {filteredCourses.map((course) => (
                         <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                          <div className="aspect-video bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                            <Play className="h-12 w-12 text-white" />
-                          </div>
+                          <button
+                            type="button"
+                            aria-label={`Open ${course.title}`}
+                            onClick={() => window.open(course.url, "_blank")}
+                            className="group relative flex aspect-video w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#fff8e8] via-[#f4ead5] to-[#e8d7b8] text-stone-800"
+                          >
+                            <span className="absolute -left-10 -top-12 h-36 w-36 rounded-full border border-amber-900/10 bg-white/25" />
+                            <span className="absolute -bottom-16 -right-8 h-44 w-44 rounded-full border border-amber-900/10 bg-amber-700/5" />
+                            <span className="absolute inset-x-0 bottom-0 h-px bg-amber-950/10" />
+                            <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-stone-900/10 bg-white/75 shadow-sm transition-transform group-hover:scale-105">
+                              <Play className="ml-1 h-7 w-7 fill-stone-800 text-stone-800" />
+                            </span>
+                            <span className="absolute bottom-4 left-4 max-w-[75%] truncate rounded-full bg-stone-900/85 px-3 py-1 text-xs font-medium text-[#fff8e8]">
+                              {course.source}
+                            </span>
+                          </button>
                           <CardHeader>
                             <div className="flex items-center justify-between">
                               <Badge variant="outline">{course.level}</Badge>

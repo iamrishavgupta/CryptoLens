@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useBalance } from "wagmi";
+import {
+  useAccount,
+  useBalance,
+  useSignMessage,
+  useSwitchChain,
+} from "wagmi";
 import {
   Card,
   CardContent,
@@ -11,262 +16,212 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
-  Wallet,
   Copy,
   ExternalLink,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
   Eye,
   EyeOff,
+  FileSignature,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
+import { WalletConnect } from "@/components/web3/WalletConnect";
 
 export function WalletInfo() {
   const { address, isConnected, chain } = useAccount();
+  const [showBalance, setShowBalance] = useState(true);
+  const [signature, setSignature] = useState<string | null>(null);
   const {
     data: balance,
     isLoading: balanceLoading,
+    error: balanceError,
     refetch,
   } = useBalance({
     address,
+    query: { enabled: Boolean(address) },
   });
-
-  const [showBalance, setShowBalance] = useState(true);
-
-  // Mock portfolio data for connected wallet
-  const [portfolioData] = useState({
-    totalValue: 15420.85,
-    dayChange: 234.67,
-    dayChangePercent: 1.54,
-    tokens: [
-      { symbol: "ETH", balance: "5.2341", value: 12834.5, change: 2.1 },
-      { symbol: "USDC", balance: "2586.42", value: 2586.42, change: 0.0 },
-    ],
-  });
+  const { chains, switchChain, isPending: isSwitching, error: switchError } =
+    useSwitchChain();
+  const { signMessageAsync, isPending: isSigning, error: signError } =
+    useSignMessage();
 
   const copyAddress = async () => {
-    if (address) {
+    if (!address) return;
+    try {
       await navigator.clipboard.writeText(address);
-
-      toast.success("Address copied to clipboard");
+      toast.success("Wallet address copied");
+    } catch {
+      toast.error("Could not copy wallet address");
     }
   };
 
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
-  };
-
-  const formatBalance = (value: number) => {
-    return showBalance
-      ? `$${value.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}`
-      : "****";
+  const signProof = async () => {
+    if (!address) return;
+    try {
+      const message = [
+        "CryptoLens wallet verification",
+        `Address: ${address}`,
+        `Network: ${chain?.name || "Unknown"}`,
+        `Issued at: ${new Date().toISOString()}`,
+        "This request is free and does not authorize a transaction.",
+      ].join("\n");
+      const result = await signMessageAsync({ message });
+      setSignature(result);
+      toast.success("Message signed successfully");
+    } catch (error) {
+      if ((error as Error).message.toLowerCase().includes("rejected")) {
+        toast.error("Signature request rejected");
+      }
+    }
   };
 
   if (!isConnected || !address) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Wallet className="w-12 h-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Wallet Connected</h3>
-          <p className="text-muted-foreground text-center mb-4">
-            Connect your wallet to view portfolio and enable Web3 features
+      <Card className="rounded-xl">
+        <CardContent className="flex flex-col items-center justify-center px-5 py-12 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+            <Wallet className="h-7 w-7 text-emerald-500" />
+          </div>
+          <h2 className="text-lg font-semibold">Connect your wallet</h2>
+          <p className="mb-5 mt-2 max-w-sm text-sm text-muted-foreground">
+            View your live balance, switch networks, sign a proof message, and send native tokens.
           </p>
+          <WalletConnect />
         </CardContent>
       </Card>
     );
   }
 
+  const explorerUrl = chain?.blockExplorers?.default.url;
+  const isSupported = chains.some((supportedChain) => supportedChain.id === chain?.id);
+
   return (
     <div className="space-y-4">
-      {/* Wallet Overview */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <div>
+      <Card className="rounded-xl">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 p-5 pb-3">
+          <div className="min-w-0">
             <CardTitle className="text-lg">Wallet Overview</CardTitle>
-            <CardDescription>
-              Connected to {chain?.name || "Unknown Network"}
+            <CardDescription className="truncate">
+              {chain?.name || "Unknown network"}
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex gap-1">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => setShowBalance(!showBalance)}
+              size="icon"
+              aria-label={showBalance ? "Hide balance" : "Show balance"}
+              onClick={() => setShowBalance((visible) => !visible)}
             >
-              {showBalance ? (
-                <Eye className="w-4 h-4" />
-              ) : (
-                <EyeOff className="w-4 h-4" />
-              )}
+              {showBalance ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
+              aria-label="Refresh balance"
               onClick={() => refetch()}
               disabled={balanceLoading}
             >
-              <RefreshCw
-                className={`w-4 h-4 ${balanceLoading ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`h-4 w-4 ${balanceLoading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Address */}
-          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <div>
-              <p className="text-sm text-muted-foreground">Wallet Address</p>
-              <code className="text-sm font-mono">
-                {formatAddress(address)}
+        <CardContent className="space-y-4 p-5 pt-0">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-muted p-3">
+            <div className="min-w-0">
+              <p className="text-xs text-muted-foreground">Wallet address</p>
+              <code className="block truncate text-sm">
+                {address.slice(0, 8)}...{address.slice(-6)}
               </code>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyAddress}
-                className="h-8 w-8 p-0"
-              >
-                <Copy className="w-3 h-3" />
+            <div className="flex flex-shrink-0 gap-1">
+              <Button variant="ghost" size="icon" aria-label="Copy address" onClick={copyAddress}>
+                <Copy className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() =>
-                  window.open(
-                    `https://etherscan.io/address/${address}`,
-                    "_blank"
-                  )
-                }
-                className="h-8 w-8 p-0"
-              >
-                <ExternalLink className="w-3 h-3" />
-              </Button>
+              {explorerUrl && (
+                <Button variant="ghost" size="icon" asChild>
+                  <a
+                    href={`${explorerUrl}/address/${address}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="View address on block explorer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
 
-          {/* Network Info */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Network:</span>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-coingecko-green-500 rounded-full" />
-              {chain?.name || "Unknown"}
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Native balance</span>
+            <span className="truncate font-mono font-medium">
+              {balanceLoading
+                ? "Loading..."
+                : balanceError
+                  ? "Unavailable"
+                  : showBalance && balance
+                    ? `${Number(balance.formatted).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${balance.symbol}`
+                    : "••••••"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-muted-foreground">Status</span>
+            <Badge className={isSupported ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/15" : "bg-red-500/15 text-red-500 hover:bg-red-500/15"}>
+              {isSupported ? "Supported" : "Unsupported network"}
             </Badge>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Native Balance */}
-          {balance && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Native Balance:
-              </span>
-              <span className="font-mono">
-                {showBalance
-                  ? `${parseFloat(balance.formatted).toFixed(4)} ${
-                      balance.symbol
-                    }`
-                  : "****"}
-              </span>
-            </div>
+      <Card className="rounded-xl">
+        <CardHeader className="p-5 pb-3">
+          <CardTitle className="text-lg">Network</CardTitle>
+          <CardDescription>Choose the chain used for balances and transactions.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-2 p-5 pt-0 sm:grid-cols-3">
+          {chains.map((availableChain) => (
+            <Button
+              key={availableChain.id}
+              variant={chain?.id === availableChain.id ? "default" : "outline"}
+              className="min-w-0 justify-start"
+              disabled={isSwitching || chain?.id === availableChain.id}
+              onClick={() => switchChain({ chainId: availableChain.id })}
+            >
+              <span className="truncate">{availableChain.name}</span>
+            </Button>
+          ))}
+          {switchError && (
+            <p className="col-span-full text-xs text-red-500">{switchError.message}</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Portfolio Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Portfolio Summary</CardTitle>
-          <CardDescription>Your token holdings and values</CardDescription>
+      <Card className="rounded-xl">
+        <CardHeader className="p-5 pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FileSignature className="h-5 w-5" /> Proof of wallet
+          </CardTitle>
+          <CardDescription>
+            Sign a free message to prove wallet ownership. This never moves funds.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Total Value */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                Total Portfolio Value
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowBalance(!showBalance)}
-                className="h-6 w-6 p-0"
-              >
-                {showBalance ? (
-                  <Eye className="w-3 h-3" />
-                ) : (
-                  <EyeOff className="w-3 h-3" />
-                )}
-              </Button>
+        <CardContent className="space-y-3 p-5 pt-0">
+          <Button className="w-full" variant="outline" onClick={signProof} disabled={isSigning}>
+            {isSigning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+            {isSigning ? "Check your wallet..." : "Sign verification message"}
+          </Button>
+          {signature && (
+            <div className="rounded-lg bg-emerald-500/10 p-3 text-xs text-emerald-600 dark:text-emerald-400">
+              <p className="font-medium">Signature created</p>
+              <code className="mt-1 block truncate">{signature}</code>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold">
-                {formatBalance(portfolioData.totalValue)}
-              </span>
-              <Badge
-                variant={
-                  portfolioData.dayChangePercent >= 0
-                    ? "default"
-                    : "destructive"
-                }
-                className="flex items-center gap-1"
-              >
-                {portfolioData.dayChangePercent >= 0 ? (
-                  <TrendingUp className="w-3 h-3" />
-                ) : (
-                  <TrendingDown className="w-3 h-3" />
-                )}
-                {Math.abs(portfolioData.dayChangePercent)}%
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {portfolioData.dayChangePercent >= 0 ? "+" : ""}
-              {formatBalance(portfolioData.dayChange)} today
-            </p>
-          </div>
-
-          <Separator />
-
-          {/* Token Holdings */}
-          <div className="space-y-3">
-            <h4 className="font-medium">Token Holdings</h4>
-            {portfolioData.tokens.map((token, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                    <span className="text-xs font-bold">{token.symbol}</span>
-                  </div>
-                  <div>
-                    <p className="font-medium">{token.symbol}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {showBalance ? token.balance : "****"}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{formatBalance(token.value)}</p>
-                  <p
-                    className={`text-sm ${
-                      token.change >= 0
-                        ? "text-coingecko-green-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {token.change >= 0 ? "+" : ""}
-                    {token.change}%
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
+          {signError && !signature && (
+            <p className="text-xs text-red-500">{signError.message}</p>
+          )}
         </CardContent>
       </Card>
     </div>

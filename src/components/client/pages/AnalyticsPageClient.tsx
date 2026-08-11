@@ -154,7 +154,7 @@ export default function AnalyticsPageClient() {
                               <Badge
                                 variant={
                                   indicator.status === "bullish" ||
-                                  indicator.status === "above"
+                                    indicator.status === "above"
                                     ? "default"
                                     : "secondary"
                                 }
@@ -204,11 +204,10 @@ export default function AnalyticsPageClient() {
                             </div>
                             <p className="text-2xl font-bold">{metric.value}</p>
                             <p
-                              className={`text-sm ${
-                                metric.trend === "up"
+                              className={`text-sm ${metric.trend === "up"
                                   ? "text-coingecko-green-600"
                                   : "text-red-600"
-                              }`}
+                                }`}
                             >
                               {metric.change}
                             </p>
@@ -286,13 +285,12 @@ export default function AnalyticsPageClient() {
                               </div>
                               <div className="flex items-center gap-2">
                                 <div
-                                  className={`w-3 h-3 rounded-full ${
-                                    corr.correlation > 0.8
+                                  className={`w-3 h-3 rounded-full ${corr.correlation > 0.8
                                       ? "bg-coingecko-green-500"
                                       : corr.correlation > 0.6
-                                      ? "bg-yellow-500"
-                                      : "bg-red-500"
-                                  }`}
+                                        ? "bg-yellow-500"
+                                        : "bg-red-500"
+                                    }`}
                                 />
                                 <span className="font-mono text-sm">
                                   {corr.correlation.toFixed(2)}

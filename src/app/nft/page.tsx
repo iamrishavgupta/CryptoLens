@@ -1,52 +1,96 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Image as ImageIcon, Users, Star, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Search, X } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface NFTCollection {
   id: string;
   name: string;
   symbol: string;
-  asset_platform_id: string;
-  contract_address: string | null;
+  assetPlatformId: string;
+  contractAddress: string | null;
+  image: string;
+  nativeCurrencySymbol: string;
+  floorPrice: number;
+  marketCap: number;
+  floorPriceChange24h: number;
+  marketCapRank: number;
 }
 
-const PLATFORM_COLORS: Record<string, string> = {
-  ethereum: "bg-blue-100 text-blue-800",
-  solana: "bg-purple-100 text-purple-800",
-  ronin: "bg-green-100 text-green-800",
-  polygon: "bg-indigo-100 text-indigo-800",
-  stargaze: "bg-pink-100 text-pink-800",
+interface NFTResponse {
+  success: boolean;
+  data: NFTCollection[];
+  error?: string;
+}
+
+const formatNativeValue = (value: number) => {
+  if (!Number.isFinite(value)) return "0";
+  if (value >= 1000) {
+    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
+  if (value >= 10) return value.toFixed(2);
+  if (value >= 1) return value.toFixed(2);
+  if (value >= 0.1) return value.toFixed(3);
+  return value.toFixed(4);
 };
 
 export default function NFTPage() {
   const [collections, setCollections] = useState<NFTCollection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const loadCollections = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-  useEffect(() => {
-    fetch("/api/nft")
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.success) setCollections(json.data);
-        setIsLoading(false);
-      })
-      .catch(() => setIsLoading(false));
+    try {
+      const response = await fetch("/api/nft");
+      const payload: NFTResponse = await response.json();
+
+      if (!response.ok || !payload.success || !Array.isArray(payload.data)) {
+        throw new Error(payload.error || "Unable to load NFT collections");
+      }
+
+      setCollections(payload.data);
+    } catch (loadError) {
+      setCollections([]);
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load NFT collections"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const filtered = collections.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.symbol.toLowerCase().includes(search.toLowerCase()) ||
-      c.asset_platform_id.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    loadCollections();
+  }, [loadCollections]);
 
-  const platforms = [...new Set(collections.map((c) => c.asset_platform_id))];
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return collections;
+    return collections.filter(
+      (collection) =>
+        collection.name.toLowerCase().includes(query) ||
+        collection.symbol.toLowerCase().includes(query) ||
+        collection.assetPlatformId.toLowerCase().includes(query)
+    );
+  }, [collections, search]);
+
+  const platformCount = useMemo(
+    () =>
+      new Set(collections.map((collection) => collection.assetPlatformId)).size,
+    [collections]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,149 +99,160 @@ export default function NFTPage() {
         isMobileMenuOpen={sidebarOpen}
         setIsMobileMenuOpen={setSidebarOpen}
       />
-      <div className="container mx-auto px-4">
-        <div className="w-full max-w-[1536px] mx-auto flex">
+      <div className="w-full px-0 sm:px-4">
+        <div className="mx-auto flex w-full max-w-[1536px]">
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-          <main className="flex-1 p-5 space-y-6">
-
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold">NFT Collections</h1>
-                <p className="text-muted-foreground">
-                  Explore and analyze the top NFT collections
-                </p>
+          <main className="min-w-0 flex-1 overflow-x-hidden px-3 py-3 sm:p-5">
+            <div className="space-y-5 sm:space-y-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold sm:text-3xl">NFT Collections</h1>
+                  <p className="mt-1 text-sm text-muted-foreground sm:text-base">
+                    Explore NFT floor prices and market capitalization
+                  </p>
+                </div>
+                <div className="relative w-full lg:w-96">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search NFT collections..."
+                    className="pl-9 pr-9"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="relative max-w-md w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search by name, symbol, or chain..."
-                  className="pl-10 pr-9"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                )}
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <Card>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Collections
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : collections.length}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Blockchains
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : platformCount}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-2 sm:col-span-1">
+                  <CardHeader className="p-3 pb-1 sm:p-6 sm:pb-2">
+                    <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      Showing Results
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                    <p className="text-xl font-bold sm:text-2xl">
+                      {isLoading ? "..." : filtered.length}
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-2">
-                    <ImageIcon className="h-6 w-6 text-blue-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total Collections</p>
-                      <p className="text-2xl font-bold">
-                        {isLoading ? "..." : collections.length}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-6 w-6 text-green-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Blockchains</p>
-                      <p className="text-2xl font-bold">
-                        {isLoading ? "..." : platforms.length}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-2">
-                    <Star className="h-6 w-6 text-purple-500" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Showing Results</p>
-                      <p className="text-2xl font-bold">
-                        {isLoading ? "..." : filtered.length}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Collections Table */}
-            <Card>
-              <CardContent className="p-0">
+              <section>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-20 text-muted-foreground">
+                  <div className="py-20 text-center text-muted-foreground">
                     Loading NFT collections...
                   </div>
+                ) : error ? (
+                  <div className="flex flex-col items-center gap-3 py-16 text-center">
+                    <p className="text-sm text-red-500">{error}</p>
+                    <Button variant="outline" size="sm" onClick={loadCollections}>
+                      Try again
+                    </Button>
+                  </div>
                 ) : filtered.length === 0 ? (
-                  <div className="text-center py-20 text-muted-foreground">
+                  <div className="py-20 text-center text-muted-foreground">
                     No collections found for &quot;{search}&quot;
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
+                  <div className="w-full max-w-full overflow-hidden border-0">
+                    <table className="w-full table-fixed">
                       <thead>
-                        <tr className="border-b text-xs text-muted-foreground">
-                          <th className="text-left px-6 py-3">#</th>
-                          <th className="text-left px-4 py-3">Collection</th>
-                          <th className="text-left px-4 py-3">Symbol</th>
-                          <th className="text-left px-4 py-3">Blockchain</th>
-                          <th className="text-left px-4 py-3 hidden md:table-cell">Contract</th>
+                        <tr className="text-[10px] text-muted-foreground sm:text-xs">
+                          <th className="w-[55%] px-1 py-3 text-left sm:px-4">NFT</th>
+                          <th className="w-[25%] px-1 py-3 text-left sm:px-4">Floor Price</th>
+                          <th className="w-[20%] px-1 py-3 text-right sm:px-4">Market Cap</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filtered.map((col, index) => (
-                          <tr
-                            key={col.id}
-                            className="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                            onClick={() =>
-                              window.open(
-                                `https://www.coingecko.com/en/nft/${col.id}`,
-                                "_blank"
-                              )
-                            }
-                          >
-                            <td className="px-6 py-4 text-sm text-muted-foreground">
-                              {index + 1}
-                            </td>
-                            <td className="px-4 py-4">
-                              <p className="text-sm font-medium">{col.name}</p>
-                            </td>
-                            <td className="px-4 py-4 text-sm text-muted-foreground uppercase">
-                              {col.symbol}
-                            </td>
-                            <td className="px-4 py-4">
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  PLATFORM_COLORS[col.asset_platform_id] ||
-                                  "bg-gray-100 text-gray-800"
-                                }`}
-                              >
-                                {col.asset_platform_id}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-sm text-muted-foreground hidden md:table-cell font-mono">
-                              {col.contract_address
-                                ? `${col.contract_address.slice(0, 6)}...${col.contract_address.slice(-4)}`
-                                : "N/A"}
-                            </td>
-                          </tr>
-                        ))}
+                        {filtered.map((collection) => {
+                          const isPositive = collection.floorPriceChange24h >= 0;
+                          const symbol = collection.nativeCurrencySymbol || "Ξ";
+
+                          return (
+                            <tr key={collection.id}>
+                              <td className="px-1 py-3 sm:px-4 sm:py-4">
+                                <a
+                                  href={`https://www.coingecko.com/en/nft/${collection.id}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex min-w-0 items-center gap-2 sm:gap-3"
+                                >
+                                  <div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-muted sm:h-11 sm:w-11">
+                                    {collection.image ? (
+                                      <Image
+                                        src={collection.image}
+                                        alt={collection.name}
+                                        fill
+                                        sizes="44px"
+                                        className="object-cover"
+                                      />
+                                    ) : null}
+                                  </div>
+                                  <span className="truncate text-xs font-medium sm:text-base">
+                                    {collection.name}
+                                  </span>
+                                </a>
+                              </td>
+                              <td className="px-1 py-3 sm:px-4 sm:py-4">
+                                <p className="whitespace-nowrap text-xs sm:text-base">
+                                  {symbol}{formatNativeValue(collection.floorPrice)}
+                                </p>
+                                {Math.abs(collection.floorPriceChange24h) >= 0.05 && (
+                                  <p className={`whitespace-nowrap text-[10px] font-medium sm:text-sm ${
+                                    isPositive ? "text-green-500" : "text-red-500"
+                                  }`}>
+                                    {isPositive ? "▲" : "▼"} {Math.abs(collection.floorPriceChange24h).toFixed(1)}%
+                                  </p>
+                                )}
+                              </td>
+                              <td className="overflow-hidden text-ellipsis whitespace-nowrap px-1 py-3 text-right text-xs sm:px-4 sm:py-4 sm:text-base">
+                                {symbol}{formatNativeValue(collection.marketCap)}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
+              </section>
+            </div>
           </main>
         </div>
       </div>

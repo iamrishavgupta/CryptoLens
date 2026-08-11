@@ -1,19 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BarChart3,
   Bell,
+  LogOut,
   Menu,
-  X,
+  Settings,
+  Star,
   TrendingUp,
   Wallet,
-  Settings,
-  LogOut,
-  Star,
-  BarChart3,
+  X,
 } from "lucide-react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,21 +27,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { WalletConnect } from "@/components/web3/WalletConnect";
+import Logo from "@/components/common/Logo";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
-import Logo from "../common/Logo";
 import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
 
 interface HeaderProps {
   variant?: "full" | "simplified";
   isMobileMenuOpen?: boolean;
   setIsMobileMenuOpen?: (open: boolean) => void;
 }
-
 export const Header: React.FC<HeaderProps> = ({
   variant = "full",
   isMobileMenuOpen = false,
@@ -53,26 +53,26 @@ export const Header: React.FC<HeaderProps> = ({
       setUnreadNotifications(0);
       return;
     }
-    const q = query(
+    const alertsQuery = query(
       collection(db, "alerts"),
       where("userId", "==", user.uid),
       where("isTriggered", "==", true)
     );
-    const unsub = onSnapshot(q, (snap) => {
-      const count = snap.docs.filter((d) => !d.data().notificationRead).length;
-      setUnreadNotifications(count);
+    return onSnapshot(alertsQuery, (snapshot) => {
+      setUnreadNotifications(
+        snapshot.docs.filter((item) => !item.data().notificationRead).length
+      );
     });
-    return () => unsub();
   }, [user?.uid]);
 
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Signed out successfully!");
+      toast.success("Signed out successfully");
       router.push("/");
     } catch (error) {
-      toast.error("Failed to sign out");
       console.error("Logout error:", error);
+      toast.error("Failed to sign out");
     }
   };
 
@@ -82,212 +82,131 @@ export const Header: React.FC<HeaderProps> = ({
     { label: "DeFi", href: "/defi", icon: TrendingUp },
     { label: "NFT", href: "/nft", icon: TrendingUp },
     { label: "Learn", href: "/education", icon: TrendingUp },
-    
+    { label: "Web3", href: "/web3", icon: Wallet },
   ];
+
+  const walletControl = (desktopBreakpoint: "md" | "xl") => (
+    <>
+      <div className={desktopBreakpoint === "md" ? "md:hidden" : "xl:hidden"}>
+        <WalletConnect compact />
+      </div>
+      <div className={desktopBreakpoint === "md" ? "hidden md:block" : "hidden xl:block"}>
+        <WalletConnect />
+      </div>
+    </>
+  );
+
+  const userMenu = (mobile = false) => {
+    if (!user) return null;
+    return (
+      <div className={mobile ? "md:hidden" : "hidden md:block"}>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user.photoURL || user.avatar} alt={user.displayName} />
+                <AvatarFallback>
+                  {user.displayName?.charAt(0).toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                <p className="truncate text-xs leading-none text-muted-foreground">{user.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/portfolio" className="flex items-center">
+                <Wallet className="mr-2 h-4 w-4" /> Portfolio
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/web3" className="flex items-center">
+                <Wallet className="mr-2 h-4 w-4" /> Wallet Center
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center">
+                <Settings className="mr-2 h-4 w-4" /> Settings
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" /> Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
+
+  const authButtons = (mobile = false) => {
+    if (user) return null;
+    return (
+      <div className={`items-center gap-1 ${mobile ? "flex md:hidden" : "hidden md:flex"}`}>
+        <Button variant="ghost" size="sm" asChild className="px-2 text-xs sm:px-3 sm:text-sm">
+          <Link href="/login">Sign In</Link>
+        </Button>
+        <Button size="sm" asChild className="hidden whitespace-nowrap px-2 text-xs min-[390px]:inline-flex sm:px-3 sm:text-sm">
+          <Link href="/register">Sign Up</Link>
+        </Button>
+      </div>
+    );
+  };
+
+  const notificationButton = (mobileOnly = false) => {
+    if (!user) return null;
+    return (
+      <Link href="/notifications" className={`relative ${mobileOnly ? "md:hidden" : ""}`}>
+        <Button variant="ghost" size="icon" className="relative h-9 w-9">
+          <Bell className="h-4 w-4" />
+          {unreadNotifications > 0 && (
+            <Badge variant="destructive" className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px]">
+              {unreadNotifications}
+            </Badge>
+          )}
+        </Button>
+      </Link>
+    );
+  };
+
   if (variant === "simplified") {
     return (
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto">
-          <div className="flex h-14 items-center justify-between">
-            {/* Left Side */}
-            <div className="flex items-center space-x-3">
-              {/* Mobile Menu Button */}
+        <div className="mx-auto w-full max-w-[1536px] px-3 sm:px-4">
+          <div className="flex h-14 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1 sm:gap-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="xl:hidden"
+                className="flex-shrink-0 xl:hidden"
+                aria-label="Toggle navigation"
                 onClick={() => setIsMobileMenuOpen?.(!isMobileMenuOpen)}
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-
-              {/* Logo */}
               <Logo />
             </div>
 
-            {/* Right Side - Mobile optimized */}
-            <div className="flex items-center gap-2">
-              {/* Desktop: Show portfolio button */}
+            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
               {user && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="hidden md:flex"
-                >
-                  <Link
-                    href="/portfolio"
-                    className="flex items-center space-x-1"
-                  >
-                    <Wallet className="h-4 w-4" />
-                    <span>Portfolio</span>
+                <Button variant="ghost" size="sm" asChild className="hidden lg:flex">
+                  <Link href="/portfolio" className="flex items-center gap-1">
+                    <Wallet className="h-4 w-4" /> Portfolio
                   </Link>
                 </Button>
               )}
-
-              {/* Always show theme toggle */}
+              {walletControl("md")}
               <ThemeToggle />
-
-              {/* Notifications - only on mobile for logged in users */}
-              {user && (
-                <Link href="/notifications" className="relative md:hidden">
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-4 w-4" />
-                    {unreadNotifications > 0 && (
-                      <Badge
-                        variant="destructive"
-                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs"
-                      >
-                        {unreadNotifications}
-                      </Badge>
-                    )}
-                  </Button>
-                </Link>
-              )}
-
-              {/* Desktop: Show wallet connect and user menu */}
-              <div className="hidden md:flex items-center gap-2">
-                {user ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="relative h-8 w-8 rounded-full"
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={user.photoURL || user.avatar}
-                            alt={user.displayName}
-                          />
-                          <AvatarFallback>
-                            {user.displayName?.charAt(0).toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      className="w-56"
-                      align="end"
-                      forceMount
-                    >
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {user.displayName}
-                          </p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/portfolio" className="flex items-center">
-                          <Wallet className="mr-2 h-4 w-4" />
-                          <span>Portfolio</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                 <div className="flex items-center gap-1">
-  <Button variant="ghost" size="sm" asChild className="px-2 text-xs sm:text-sm sm:px-3">
-    <Link href="/login">Sign In</Link>
-  </Button>
-  <Button size="sm" asChild className="px-2 text-xs sm:text-sm sm:px-3 whitespace-nowrap">
-    <Link href="/register">Sign Up</Link>
-  </Button>
-</div>
-                )}
-              </div>
-
-              {/* Mobile: Show profile dropdown */}
-              {user && (
-                <div className="md:hidden">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="relative h-8 w-8 rounded-full"
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={user.photoURL || user.avatar}
-                            alt={user.displayName}
-                          />
-                          <AvatarFallback>
-                            {user.displayName?.charAt(0).toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      className="w-56"
-                      align="end"
-                      forceMount
-                    >
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {user.displayName}
-                          </p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link href="/portfolio" className="flex items-center">
-                          <Wallet className="mr-2 h-4 w-4" />
-                          <span>Portfolio</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href="/settings" className="flex items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          <span>Settings</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-
-              {/* Mobile menu toggle for non-logged in users */}
-
-
-            {!user && (
-  <div className="flex items-center gap-1 md:hidden">
-    <Button variant="ghost" size="sm" asChild className="px-2 text-xs">
-      <Link href="/login">Sign In</Link>
-    </Button>
-    <Button size="sm" asChild className="px-2 text-xs">
-      <Link href="/register">Sign Up</Link>
-    </Button>
-  </div>
-)}
-
+              {notificationButton(true)}
+              {userMenu(false)}
+              {userMenu(true)}
+              {authButtons(false)}
+              {authButtons(true)}
             </div>
           </div>
         </div>
@@ -297,153 +216,59 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-  <div className="w-full px-3 sm:px-4">
-    <div className="flex h-14 items-center justify-between">
-          {/* Logo and Brand */}
-          <div className="flex items-center">
+      <div className="w-full px-3 sm:px-4">
+        <div className="flex h-14 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center">
             {setIsMobileMenuOpen && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden"
+                className="flex-shrink-0 md:hidden"
+                aria-label="Toggle navigation"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             )}
-
             <Logo />
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-6">
+          <nav className="hidden items-center space-x-5 lg:flex">
             {navigationItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  pathname === item.href
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
+                className={`text-sm font-medium transition-colors hover:text-primary ${pathname === item.href ? "text-primary" : "text-muted-foreground"}`}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Portfolio and Watchlist for logged in users */}
+          <div className="flex flex-shrink-0 items-center gap-1">
             {user && (
               <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link
-                    href="/portfolio"
-                    className="flex items-center space-x-1"
-                  >
+                <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/portfolio" className="flex items-center gap-1">
                     <Wallet className="h-4 w-4" />
-                    <span className="hidden sm:inline">Portfolio</span>
+                    <span className="hidden xl:inline">Portfolio</span>
                   </Link>
                 </Button>
-
-
-
-
-                <Button variant="ghost" size="sm" asChild>
-      <Link href="/watchlist" className="flex items-center space-x-1">
-        <Star className="h-4 w-4" />
-        <span className="hidden sm:inline">Watchlist</span>
-      </Link>
-    </Button>
-
-
-
-
+                <Button variant="ghost" size="sm" asChild className="hidden sm:inline-flex">
+                  <Link href="/watchlist" className="flex items-center gap-1">
+                    <Star className="h-4 w-4" />
+                    <span className="hidden xl:inline">Watchlist</span>
+                  </Link>
+                </Button>
               </>
             )}
-
+            {walletControl("xl")}
             <ThemeToggle />
-
-            {/* Notifications */}
-            {user && (
-              <Link href="/notifications" className="relative">
-                <Bell className="h-4 w-4" />
-                {unreadNotifications > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-3 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    {unreadNotifications}
-                  </Badge>
-                )}
-              </Link>
-            )}
-
-            {/* User Menu */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="relative h-8 w-8 rounded-full"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={user.photoURL || user.avatar}
-                        alt={user.displayName}
-                      />
-                      <AvatarFallback>
-                        {user.displayName?.charAt(0).toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.displayName}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/portfolio" className="flex items-center">
-                      <Wallet className="mr-2 h-4 w-4" />
-                      <span>Portfolio</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/login">Sign In</Link>
-                </Button>
-                <Button size="sm" asChild>
-                  <Link href="/register">Sign Up</Link>
-                </Button>
-              </div>
-            )}
+            <div className="hidden sm:block">{notificationButton()}</div>
+            {userMenu(false)}
+            {userMenu(true)}
+            {authButtons(false)}
+            {authButtons(true)}
           </div>
         </div>
       </div>

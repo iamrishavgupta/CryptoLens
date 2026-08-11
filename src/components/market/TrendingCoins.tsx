@@ -3,15 +3,10 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { TrendingUp, TrendingDown, Star, MoreHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Flame, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface TrendingCoin {
   id: string;
@@ -34,202 +29,126 @@ interface TrendingCoinsProps {
   onAddToPortfolio?: (coinId: string) => void;
 }
 
+const formatPrice = (price: number | null | undefined) => {
+  if (price == null) return "N/A";
+  if (price >= 1000)
+    return `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  if (price >= 1) return `$${price.toFixed(2)}`;
+  return `$${price.toFixed(6)}`;
+};
+
+const formatLargeNumber = (num: number | null | undefined) => {
+  if (num == null) return "N/A";
+  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+  return `$${num.toLocaleString()}`;
+};
+
 export const TrendingCoins: React.FC<TrendingCoinsProps> = ({
   coins,
   isLoading = false,
-  onAddToWatchlist,
-  onAddToPortfolio,
 }) => {
-  const formatCurrency = (value: number) => {
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-    if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
-    return `$${value.toFixed(2)}`;
-  };
-
-  const formatPercentage = (value: number) => {
-    const sign = value >= 0 ? "+" : "";
-    return `${sign}${value.toFixed(2)}%`;
-  };
-
-  const MiniSparkline: React.FC<{ data: number[]; isPositive: boolean }> = ({
-    data,
-    isPositive,
-  }) => {
-    if (!data || data.length === 0) return null;
-
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min;
-
-    const points = data
-      .map((value, index) => {
-        const x = (index / (data.length - 1)) * 60;
-        const y = range === 0 ? 15 : 30 - ((value - min) / range) * 30;
-        return `${x},${y}`;
-      })
-      .join(" ");
-
-    return (
-      <svg width="60" height="30" className="overflow-visible">
-        <polyline
-          points={points}
-          fill="none"
-          stroke={isPositive ? "#22c55e" : "#ef4444"}
-          strokeWidth="1.5"
-          className="drop-shadow-sm"
-        />
-      </svg>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Trending</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
-                <div className="flex-1 space-y-1">
-                  <div className="h-4 bg-muted rounded animate-pulse" />
-                  <div className="h-3 bg-muted rounded animate-pulse w-20" />
-                </div>
-                <div className="text-right space-y-1">
-                  <div className="h-4 bg-muted rounded animate-pulse w-16" />
-                  <div className="h-3 bg-muted rounded animate-pulse w-12" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const router = useRouter();
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <span>🔥</span>
-          Trending
+    <Card className="w-full max-w-full overflow-hidden rounded-none border-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+      <CardHeader className="hidden flex-row items-center justify-between px-3 sm:flex sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Flame className="h-5 w-5 text-orange-500" />
+          <span className="truncate">Trending Coins</span>
         </CardTitle>
         <Button variant="ghost" size="sm" asChild>
           <Link
-            href="/market/trending"
-            className="text-coingecko-green-500 hover:text-coingecko-green-600"
+            href="/market"
+            className="text-xs text-muted-foreground"
           >
             View All
           </Link>
         </Button>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {coins.slice(0, 5).map((coin, index) => (
-            <div
-              key={coin.id}
-              className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              {/* Rank */}
-              <div className="w-6 text-center">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {index + 1}
-                </span>
-              </div>
-
-              {/* Coin Info */}
-              <div className="flex items-center space-x-3 min-w-0 flex-1">
-                <div className="relative w-8 h-8 flex-shrink-0">
-                  <Image
-                    src={coin.image}
-                    alt={coin.name}
-                    fill
-                    className="rounded-full object-cover"
-                    sizes="32px"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/coin/${coin.id}`}
-                    className="font-medium hover:text-primary transition-colors truncate block"
-                  >
-                    {coin.name}
-                  </Link>
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground uppercase">
-                      {coin.symbol}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      #{coin.rank}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mini Chart */}
-              <div className="hidden sm:block">
-                <MiniSparkline
-                  data={coin.sparkline}
-                  isPositive={coin.priceChangePercentage24h >= 0}
-                />
-              </div>
-
-              {/* Price Info */}
-              <div className="text-right space-y-1 min-w-0">
-                <div className="font-medium">
-                  {formatCurrency(coin.currentPrice)}
-                </div>
-                <div className="flex items-center justify-end space-x-1">
-                  {coin.priceChangePercentage24h >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-coingecko-green-500" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-500" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      coin.priceChangePercentage24h >= 0
-                        ? "text-coingecko-green-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    {formatPercentage(coin.priceChangePercentage24h)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="w-8 h-8">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onAddToWatchlist?.(coin.id)}>
-                    <Star className="mr-2 h-4 w-4" />
-                    Add to Watchlist
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onAddToPortfolio?.(coin.id)}>
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Add to Portfolio
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/coin/${coin.id}`}>View Details</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
-        </div>
-
-        {coins.length > 5 && (
-          <div className="mt-4 pt-4 border-t">
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/market/trending">View All Trending Coins</Link>
-            </Button>
+      <CardContent className="p-0">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            Loading live data...
+          </div>
+        ) : (
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed sm:table-auto">
+              <thead>
+                <tr className="border-b-0 sm:border-b text-[10px] sm:text-xs text-muted-foreground">
+                  <th className="w-[7%] sm:w-auto text-left px-1 sm:px-6 py-3">#</th>
+                  <th className="w-[27%] sm:w-auto text-left px-1 sm:px-4 py-3">Coin</th>
+                  <th className="w-[24%] sm:w-auto text-right px-1 sm:px-4 py-3">Price</th>
+                  <th className="w-[18%] sm:w-auto text-right px-1 sm:px-4 py-3">24H</th>
+                  <th className="w-[24%] sm:w-auto text-right px-1 sm:px-4 py-3">
+                    Market Cap
+                  </th>
+                  <th className="text-right px-4 sm:px-6 py-3 hidden lg:table-cell">
+                    Volume 24h
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {coins.map((coin, index) => {
+                  const isPositive = (coin.priceChangePercentage24h ?? 0) >= 0;
+                  return (
+                    <tr
+                      key={coin.id}
+                      className="border-b-0 sm:border-b hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/coin/${coin.id}`)}
+                    >
+                      <td className="px-1 sm:px-6 py-4 text-[11px] sm:text-sm text-muted-foreground">
+                        {coin.rank || index + 1}
+                      </td>
+                      <td className="px-1 sm:px-4 py-4">
+                        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+                          <Image
+                            src={coin.image}
+                            alt={coin.name}
+                            width={32}
+                            height={32}
+                            className="h-6 w-6 sm:h-8 sm:w-8 rounded-full flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs sm:text-sm font-medium truncate uppercase sm:normal-case">
+                              <span className="sm:hidden">{coin.symbol}</span>
+                              <span className="hidden sm:inline">{coin.name}</span>
+                            </p>
+                            <p className="hidden sm:block text-xs text-muted-foreground uppercase">
+                              {coin.symbol}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-1 sm:px-4 py-4 text-right text-[11px] sm:text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                        {formatPrice(coin.currentPrice)}
+                      </td>
+                      <td className="px-1 sm:px-4 py-4 text-right">
+                        <div
+                          className={`flex items-center justify-end gap-0.5 sm:gap-1 text-[11px] sm:text-sm font-medium whitespace-nowrap ${
+                            isPositive ? "text-green-500" : "text-red-500"
+                          }`}
+                        >
+                          {isPositive ? (
+                            <ArrowUpRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                          ) : (
+                            <ArrowDownRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                          )}
+                          {Math.abs(coin.priceChangePercentage24h ?? 0).toFixed(1)}%
+                        </div>
+                      </td>
+                      <td className="px-1 sm:px-4 py-4 text-right text-[11px] sm:text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">
+                        {formatLargeNumber(coin.marketCap)}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 text-right text-sm text-muted-foreground hidden lg:table-cell">
+                        {formatLargeNumber(coin.volume24h)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>

@@ -69,7 +69,9 @@ export default function DeFiPage() {
     });
 
   const totalTVL = protocols.reduce((sum, p) => sum + p.tvl, 0);
-  const uniqueCategories = [...new Set(protocols.map((p) => p.category))];
+  const uniqueCategories = Array.from(
+    new Set(protocols.map((protocol) => protocol.category))
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,11 +168,10 @@ export default function DeFiPage() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === cat
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>

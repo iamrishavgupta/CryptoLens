@@ -63,7 +63,7 @@ export default function NewsPage() {
     fetch("/api/market/global")
       .then((r) => r.json())
       .then((json) => { if (json.success) setFearGreed(json.data.fearGreedIndex); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Fetch news
@@ -84,7 +84,7 @@ export default function NewsPage() {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       if (typeof window !== "undefined") {
-        localStorage.setItem("newsBookmarks", JSON.stringify([...next]));
+        localStorage.setItem("newsBookmarks", JSON.stringify(Array.from(next)));
       }
       return next;
     });
@@ -190,7 +190,7 @@ export default function NewsPage() {
           <span className="text-xs text-muted-foreground truncate max-w-[120px]">{article.source.name}</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" className="h-7 text-xs px-2"
-              onClick={() => navigator.share?.({ title: article.title, url: article.url }).catch(() => {})}>
+              onClick={() => navigator.share?.({ title: article.title, url: article.url }).catch(() => { })}>
               <Share className="h-3 w-3 mr-1" />Share
             </Button>
             <Button size="sm" className="h-7 text-xs px-2"
@@ -264,11 +264,10 @@ export default function NewsPage() {
               {categories.map((cat) => (
                 <button key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === cat
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${selectedCategory === cat
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
+                    }`}
                 >
                   {cat}
                 </button>

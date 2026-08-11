@@ -45,14 +45,14 @@ export function CoinCard({
     return (
       <Card
         className={cn(
-          "hover:shadow-md transition-shadow cursor-pointer",
+          "max-w-full overflow-hidden rounded-none border-0 shadow-none transition-shadow cursor-pointer sm:rounded-lg sm:border sm:shadow-sm sm:hover:shadow-md",
           className
         )}
       >
         <Link href={`/coin/${coin.id}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center space-x-2 sm:space-x-3">
                 <div className="relative w-8 h-8">
                   <Image
                     src={coin.image}
@@ -68,7 +68,7 @@ export function CoinCard({
                   <p className="text-xs text-muted-foreground">{coin.name}</p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className="font-medium text-sm">
                   {formatPrice(coin.currentPrice)}
                 </p>
@@ -89,7 +89,7 @@ export function CoinCard({
   return (
     <Card
       className={cn(
-        "hover:shadow-lg transition-all duration-200 group",
+        "max-w-full overflow-hidden rounded-none border-x-0 shadow-none transition-all duration-200 group sm:rounded-lg sm:border sm:shadow-sm sm:hover:shadow-lg",
         className
       )}
     >

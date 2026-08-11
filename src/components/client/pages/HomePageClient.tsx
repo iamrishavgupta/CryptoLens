@@ -114,12 +114,12 @@ export function HomePageClient({
       <section className="mb-8">
         <div className="flex flex-col lg:flex-row gap-4 mb-6">
           {/* Trending by Volume */}
-          <Card className="flex-1">
+          <Card className="flex-1 rounded-none border-x-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
                 🔥 Trending
-                <Link href="/market/trending" className="ml-auto">
+                <Link href="/market" className="ml-auto">
                   <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">
                     View more
                   </Button>
@@ -171,7 +171,7 @@ export function HomePageClient({
           </Card>
 
           {/* Hot — Top Gainers */}
-          <Card className="flex-1">
+          <Card className="flex-1 rounded-none border-x-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                 <Star className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />
@@ -235,7 +235,7 @@ export function HomePageClient({
 
         {/* News */}
         <div className="lg:col-span-1">
-          <FeaturedNews articles={newsArticles} />
+          <FeaturedNews />
         </div>
       </div>
     </>

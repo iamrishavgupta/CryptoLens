@@ -59,28 +59,28 @@ export function Providers({ children }: ProvidersProps) {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        enableSystem
-        disableTransitionOnChange
-      >
-        <WagmiProvider config={wagmiConfig}>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
           <ConnectKitProvider
             theme="auto"
             mode="auto"
             options={{
-              initialChainId: 0,
-              enforceSupportedChains: false,
+              initialChainId: 1,
+              enforceSupportedChains: true,
               disclaimer: undefined,
             }}
           >
             <AuthInitializer />
             {children}
           </ConnectKitProvider>
-        </WagmiProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ThemeProvider>
   );
 }

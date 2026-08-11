@@ -44,6 +44,7 @@ const navigationItems: NavigationItem[] = [
   { label: "DeFi", href: "/defi", icon: Coins },
   { label: "NFT", href: "/nft", icon: Image },
   { label: "Learn", href: "/education", icon: BookOpen },
+  { label: "Wallet Center", href: "/web3", icon: Wallet },
   { label: "Portfolio", href: "/portfolio", icon: Wallet },
   { label: "Watchlist", href: "/watchlist", icon: Star },
 ];
@@ -73,7 +74,7 @@ function SidebarMarketStats() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   return (
@@ -209,7 +210,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className }) => {
                   <span className="h-4 w-4 text-yellow-500">🔔</span>
                   <span>Price Alerts</span>
                 </Link>
-                
+
               </div>
 
               {/* Market Stats */}
@@ -221,7 +222,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, className }) => {
               </div>
 
               {/* Support */}
-              
+
 
             </nav>
           </ScrollArea>

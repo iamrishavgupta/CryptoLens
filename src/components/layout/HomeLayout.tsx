@@ -25,10 +25,10 @@ export default function HomeLayout({ children }: HomeLayoutProps) {
         setIsMobileMenuOpen={setSidebarOpen}
       />
       <div className="flex-1">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-0 sm:px-4">
           <div className="w-full max-w-[1536px] mx-auto flex">
             <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
-            <main className="flex-1 p-5">{children}</main>
+            <main className="min-w-0 flex-1 overflow-x-hidden px-3 py-3 sm:p-5">{children}</main>
           </div>
         </div>
       </div>

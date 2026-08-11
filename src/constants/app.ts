@@ -58,16 +58,16 @@ export const FIREBASE_CONFIG = {
 export const WEB3_CONFIG = {
   WALLETCONNECT_PROJECT_ID:
     process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
-  SUPPORTED_CHAINS: [1, 56, 137, 43114, 250, 42161, 10] as const, // Ethereum, BSC, Polygon, Avalanche, Fantom, Arbitrum, Optimism
-  DEFAULT_CHAIN: 1, // Ethereum
+  // Keep this legacy export aligned with src/lib/wagmi.ts.
+  SUPPORTED_CHAINS: [1, 137, 42161, 10, 8453, 56] as const,
+  DEFAULT_CHAIN: 1,
   RPC_URLS: {
-    1: "https://eth-mainnet.g.alchemy.com/v2/",
-    56: "https://bsc-dataseed.binance.org/",
-    137: "https://polygon-rpc.com/",
-    43114: "https://api.avax.network/ext/bc/C/rpc",
-    250: "https://rpc.ftm.tools/",
+    1: "https://eth.llamarpc.com",
+    137: "https://polygon-rpc.com",
     42161: "https://arb1.arbitrum.io/rpc",
     10: "https://mainnet.optimism.io",
+    8453: "https://mainnet.base.org",
+    56: "https://bsc-dataseed.binance.org",
   },
 } as const;
 

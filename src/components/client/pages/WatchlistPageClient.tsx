@@ -193,24 +193,28 @@ export default function WatchlistPageClient() {
         isMobileMenuOpen={sidebarOpen}
         setIsMobileMenuOpen={setSidebarOpen}
       />
-      <div className="flex container mx-auto px-4">
+      <div className="mx-auto flex w-full max-w-[1536px] px-3 sm:px-4">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 min-w-0 p-5 space-y-6">
+        <main className="min-w-0 flex-1 space-y-5 overflow-x-hidden py-4 sm:p-5 sm:space-y-6">
 
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
-                <Star className="h-7 w-7 text-yellow-500" />
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
+                <Star className="h-7 w-7 flex-shrink-0 text-yellow-500" />
                 Watchlists
               </h1>
-              <p className="text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground sm:text-base">
                 Track your favorite cryptocurrencies
               </p>
             </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" />Create Watchlist</Button>
+                <Button className="flex-shrink-0 bg-emerald-500 px-3 text-white hover:bg-emerald-400 sm:px-4">
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  <span className="hidden min-[360px]:inline">Create Watchlist</span>
+                  <span className="min-[360px]:hidden">Create</span>
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
@@ -237,76 +241,91 @@ export default function WatchlistPageClient() {
 
           {/* Watchlist Tabs */}
           {isLoading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <div className="py-16 text-center text-sm text-muted-foreground">
+              Loading watchlists...
+            </div>
           ) : watchlists.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <Star className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No watchlists yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first watchlist to start tracking coins</p>
-                <Button onClick={() => setShowCreateDialog(true)}>
+            <Card className="rounded-none border-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+              <CardContent className="px-4 py-12 text-center sm:p-12">
+                <Star className="mx-auto mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
+                <h3 className="mb-2 text-lg font-semibold">No watchlists yet</h3>
+                <p className="mb-4 text-sm text-muted-foreground sm:text-base">
+                  Create your first watchlist to start tracking coins
+                </p>
+                <Button
+                  className="bg-emerald-500 text-white hover:bg-emerald-400"
+                  onClick={() => setShowCreateDialog(true)}
+                >
                   <Plus className="mr-2 h-4 w-4" />Create Watchlist
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2">
-                {watchlists.map((w) => (
-                  <div key={w.id} className="flex items-center gap-1">
-                    <Button
-                      variant={selectedWatchlistId === w.id ? "default" : "outline"}
-                      onClick={() => setSelectedWatchlistId(w.id)}
-                    >
-                      {w.name}
-                      <Badge variant="secondary" className="ml-2">
-                        {items.filter((i) => i.watchlistId === w.id).length}
-                      </Badge>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500"
-                      onClick={() => deleteWatchlist(w.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+              <div className="flex max-w-full gap-2 overflow-x-auto pb-1">
+                {watchlists.map((watchlist) => {
+                  const isSelected = selectedWatchlistId === watchlist.id;
+                  const itemCount = items.filter((item) => item.watchlistId === watchlist.id).length;
+                  return (
+                    <div key={watchlist.id} className="flex flex-shrink-0 items-center gap-1">
+                      <Button
+                        variant="outline"
+                        className={isSelected
+                          ? "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-400"
+                          : "bg-background"}
+                        onClick={() => setSelectedWatchlistId(watchlist.id)}
+                      >
+                        <span className="max-w-36 truncate">{watchlist.name}</span>
+                        <Badge className="ml-2 rounded-full border-0 bg-slate-800 text-white hover:bg-slate-800">
+                          {itemCount}
+                        </Badge>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Delete ${watchlist.name}`}
+                        className="h-8 w-8 flex-shrink-0 text-red-500"
+                        onClick={() => deleteWatchlist(watchlist.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
 
               {selectedWatchlist && (
                 <>
                   {/* Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <Card>
-                      <CardContent className="p-6 flex items-center gap-2">
-                        <Star className="h-6 w-6 text-yellow-500" />
-                        <div>
+                      <CardContent className="flex items-center gap-3 p-5 sm:p-6">
+                        <Star className="h-6 w-6 flex-shrink-0 text-yellow-500" />
+                        <div className="min-w-0">
                           <p className="text-sm text-muted-foreground">Total Coins</p>
                           <p className="text-2xl font-bold">{selectedItems.length}</p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card>
-                      <CardContent className="p-6 flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6 text-green-500" />
-                        <div>
+                      <CardContent className="flex items-center gap-3 p-5 sm:p-6">
+                        <TrendingUp className="h-6 w-6 flex-shrink-0 text-green-500" />
+                        <div className="min-w-0">
                           <p className="text-sm text-muted-foreground">Combined Value</p>
-                          <p className="text-2xl font-bold">
-                            {formatLarge(selectedItems.reduce((s, i) => s + (i.currentPrice || 0), 0))}
+                          <p className="truncate text-2xl font-bold">
+                            {formatLarge(selectedItems.reduce((sum, item) => sum + (item.currentPrice || 0), 0))}
                           </p>
                         </div>
                       </CardContent>
                     </Card>
                     <Card>
-                      <CardContent className="p-6 flex items-center gap-2">
+                      <CardContent className="flex items-center gap-3 p-5 sm:p-6">
                         {avgChange >= 0
-                          ? <TrendingUp className="h-6 w-6 text-green-500" />
-                          : <TrendingDown className="h-6 w-6 text-red-500" />}
-                        <div>
+                          ? <TrendingUp className="h-6 w-6 flex-shrink-0 text-green-500" />
+                          : <TrendingDown className="h-6 w-6 flex-shrink-0 text-red-500" />}
+                        <div className="min-w-0">
                           <p className="text-sm text-muted-foreground">Avg 24h Change</p>
-                          <p className={`text-2xl font-bold ${avgChange >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          <p className={`truncate text-2xl font-bold ${avgChange >= 0 ? "text-green-500" : "text-red-500"}`}>
                             {avgChange >= 0 ? "+" : ""}{avgChange.toFixed(2)}%
                           </p>
                         </div>
@@ -315,139 +334,198 @@ export default function WatchlistPageClient() {
                   </div>
 
                   {/* Search + Add */}
-                  <div className="flex gap-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <div className="flex min-w-0 gap-2">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Search in watchlist..."
-                        className="pl-10 pr-9"
+                        placeholder="Search watchlist..."
+                        className="pl-9 pr-8"
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(event) => setSearch(event.target.value)}
                       />
                       {search && (
-                        <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <button
+                          type="button"
+                          aria-label="Clear watchlist search"
+                          onClick={() => setSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                        >
                           <X className="h-4 w-4 text-muted-foreground" />
                         </button>
                       )}
                     </div>
-                    <Button onClick={() => setShowAddCoin(!showAddCoin)}>
-                      <Plus className="mr-2 h-4 w-4" />Add Coin
+                    <Button
+                      className="flex-shrink-0 bg-emerald-500 px-3 text-white hover:bg-emerald-400 sm:px-4"
+                      onClick={() => setShowAddCoin((visible) => !visible)}
+                    >
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      <span className="whitespace-nowrap">Add Coin</span>
                     </Button>
                   </div>
 
                   {/* Add Coin Search */}
                   {showAddCoin && (
-                    <Card>
-                      <CardContent className="p-4 space-y-3">
-                        <p className="font-medium">Add coin to {selectedWatchlist.name}</p>
+                    <Card className="rounded-xl">
+                      <CardContent className="space-y-3 p-4 sm:p-5">
+                        <p className="truncate font-medium">Add coin to {selectedWatchlist.name}</p>
                         <Input
                           placeholder="Search by name or symbol..."
                           value={coinSearch}
-                          onChange={(e) => setCoinSearch(e.target.value)}
+                          onChange={(event) => setCoinSearch(event.target.value)}
                           autoFocus
                         />
                         {coinSearch && (
-                          <div className="border rounded-md divide-y max-h-48 overflow-y-auto">
-                            {filteredCoinSearch.map((coin) => {
-                              const already = items.find((i) => i.coinId === coin.id && i.watchlistId === selectedWatchlistId);
+                          <div className="max-h-52 overflow-y-auto rounded-md border divide-y">
+                            {filteredCoinSearch.length === 0 ? (
+                              <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                                No coins found
+                              </p>
+                            ) : filteredCoinSearch.map((coin) => {
+                              const already = items.some(
+                                (item) => item.coinId === coin.id && item.watchlistId === selectedWatchlistId
+                              );
                               return (
                                 <button
                                   key={coin.id}
-                                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted text-left disabled:opacity-50"
+                                  type="button"
+                                  className="flex w-full min-w-0 items-center gap-2 px-3 py-2 text-left hover:bg-muted disabled:opacity-50"
                                   onClick={() => addCoinToWatchlist(coin)}
-                                  disabled={!!already}
+                                  disabled={already}
                                 >
-                                  <Image src={coin.image} alt={coin.name} width={24} height={24} className="rounded-full" />
-                                  <span className="font-medium">{coin.name}</span>
-                                  <span className="text-muted-foreground text-sm uppercase">{coin.symbol}</span>
-                                  <span className="ml-auto text-sm">{formatPrice(coin.currentPrice)}</span>
-                                  {already && <Badge variant="secondary" className="text-xs">Added</Badge>}
+                                  <Image
+                                    src={coin.image}
+                                    alt={coin.name}
+                                    width={24}
+                                    height={24}
+                                    className="h-6 w-6 flex-shrink-0 rounded-full"
+                                  />
+                                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{coin.name}</span>
+                                  <span className="flex-shrink-0 text-xs uppercase text-muted-foreground">{coin.symbol}</span>
+                                  <span className="flex-shrink-0 whitespace-nowrap text-xs sm:text-sm">
+                                    {formatPrice(coin.currentPrice)}
+                                  </span>
+                                  {already && <Badge variant="secondary" className="hidden text-xs sm:inline-flex">Added</Badge>}
                                 </button>
                               );
                             })}
                           </div>
                         )}
-                        <Button variant="outline" size="sm" onClick={() => setShowAddCoin(false)}>Cancel</Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowAddCoin(false)}>
+                          Cancel
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
 
                   {/* Table */}
                   {selectedItems.length === 0 ? (
-                    <Card>
-                      <CardContent className="p-12 text-center">
-                        <Star className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">No coins yet</h3>
-                        <p className="text-muted-foreground mb-4">Add coins to start tracking</p>
-                        <Button onClick={() => setShowAddCoin(true)}>
+                    <Card className="rounded-none border-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+                      <CardContent className="px-4 py-12 text-center sm:p-12">
+                        <Star className="mx-auto mb-4 h-12 w-12 text-muted-foreground sm:h-16 sm:w-16" />
+                        <h3 className="mb-2 text-lg font-semibold">No coins yet</h3>
+                        <p className="mb-4 text-sm text-muted-foreground sm:text-base">Add coins to start tracking</p>
+                        <Button
+                          className="bg-emerald-500 text-white hover:bg-emerald-400"
+                          onClick={() => setShowAddCoin(true)}
+                        >
                           <Plus className="mr-2 h-4 w-4" />Add Coin
                         </Button>
                       </CardContent>
                     </Card>
-                  ) : (
-                    <div className="rounded-md border overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
-                            <th className="text-left px-4 py-3">#</th>
-                            <th className="text-left px-4 py-3">Name</th>
-                            <th className="text-right px-4 py-3">Price</th>
-                            <th className="text-right px-4 py-3">24h</th>
-                            <th className="text-right px-4 py-3 hidden md:table-cell">Market Cap</th>
-                            <th className="text-right px-4 py-3 hidden lg:table-cell">Volume</th>
-                            <th className="text-center px-4 py-3">Alerts</th>
-                            <th className="text-center px-4 py-3">Remove</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredItems.map((item) => {
-                            const isPos = (item.priceChange24h || 0) >= 0;
-                            return (
-                              <tr key={item.id} className="border-b hover:bg-muted/50">
-                                <td className="px-4 py-3 text-sm text-muted-foreground">
-                                  {item.marketCapRank || "—"}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-3">
-                                    <Image src={item.image} alt={item.name} width={28} height={28} className="rounded-full" />
-                                    <div>
-                                      <p className="font-medium text-sm">{item.name}</p>
-                                      <p className="text-xs text-muted-foreground uppercase">{item.symbol}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 text-right text-sm font-medium">
-                                  {formatPrice(item.currentPrice)}
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  <span className={`text-sm font-medium ${isPos ? "text-green-500" : "text-red-500"}`}>
-                                    {isPos ? "+" : ""}{(item.priceChange24h || 0).toFixed(2)}%
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-right text-sm text-muted-foreground hidden md:table-cell">
-                                  {formatLarge(item.marketCap)}
-                                </td>
-                                <td className="px-4 py-3 text-right text-sm text-muted-foreground hidden lg:table-cell">
-                                  {formatLarge(item.totalVolume)}
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <Button variant="ghost" size="icon" onClick={() => toggleAlert(item.id, item.alertsEnabled)}>
-                                    {item.alertsEnabled
-                                      ? <Bell className="h-4 w-4 text-blue-500" />
-                                      : <BellOff className="h-4 w-4 text-muted-foreground" />}
-                                  </Button>
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                  ) : filteredItems.length === 0 ? (
+                    <div className="py-16 text-center text-sm text-muted-foreground">
+                      No coins found for &quot;{search}&quot;
                     </div>
+                  ) : (
+                    <Card className="w-full max-w-full overflow-hidden rounded-none border-0 shadow-none sm:rounded-lg sm:border sm:shadow-sm">
+                      <CardContent className="p-0">
+                        <div className="overflow-hidden">
+                          <table className="w-full table-fixed sm:table-auto">
+                            <thead>
+                              <tr className="border-b-0 text-[10px] text-muted-foreground sm:border-b sm:text-xs">
+                                <th className="w-[7%] px-1 py-3 text-left sm:w-auto sm:px-4">#</th>
+                                <th className="w-[27%] px-1 py-3 text-left sm:w-auto sm:px-4">Coin</th>
+                                <th className="w-[24%] px-1 py-3 text-right sm:w-auto sm:px-4">Price</th>
+                                <th className="w-[18%] px-1 py-3 text-right sm:w-auto sm:px-4">24H</th>
+                                <th className="w-[24%] px-1 py-3 text-right sm:w-auto sm:px-4">Market Cap</th>
+                                <th className="hidden px-4 py-3 text-right lg:table-cell">Volume</th>
+                                <th className="hidden px-4 py-3 text-center sm:table-cell">Alerts</th>
+                                <th className="hidden px-4 py-3 text-center sm:table-cell">Remove</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredItems.map((item) => {
+                                const isPositive = (item.priceChange24h || 0) >= 0;
+                                return (
+                                  <tr key={item.id} className="border-b-0 transition-colors hover:bg-muted/50 sm:border-b">
+                                    <td className="px-1 py-4 text-[11px] text-muted-foreground sm:px-4 sm:text-sm">
+                                      {item.marketCapRank || "—"}
+                                    </td>
+                                    <td className="px-1 py-4 sm:px-4">
+                                      <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+                                        <Image
+                                          src={item.image}
+                                          alt={item.name}
+                                          width={32}
+                                          height={32}
+                                          className="h-6 w-6 flex-shrink-0 rounded-full sm:h-8 sm:w-8"
+                                        />
+                                        <div className="min-w-0">
+                                          <p className="truncate text-xs font-medium uppercase sm:text-sm sm:normal-case">
+                                            <span className="sm:hidden">{item.symbol}</span>
+                                            <span className="hidden sm:inline">{item.name}</span>
+                                          </p>
+                                          <p className="hidden text-xs uppercase text-muted-foreground sm:block">{item.symbol}</p>
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="overflow-hidden text-ellipsis whitespace-nowrap px-1 py-4 text-right text-[11px] font-medium sm:px-4 sm:text-sm">
+                                      {formatPrice(item.currentPrice)}
+                                    </td>
+                                    <td className="px-1 py-4 text-right sm:px-4">
+                                      <span className={`inline-flex items-center justify-end gap-0.5 whitespace-nowrap text-[11px] font-medium sm:text-sm ${isPositive ? "text-green-500" : "text-red-500"}`}>
+                                        {isPositive
+                                          ? <TrendingUp className="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />
+                                          : <TrendingDown className="h-3 w-3 flex-shrink-0 sm:h-3.5 sm:w-3.5" />}
+                                        {Math.abs(item.priceChange24h || 0).toFixed(1)}%
+                                      </span>
+                                    </td>
+                                    <td className="overflow-hidden text-ellipsis whitespace-nowrap px-1 py-4 text-right text-[11px] text-muted-foreground sm:px-4 sm:text-sm">
+                                      {formatLarge(item.marketCap)}
+                                    </td>
+                                    <td className="hidden px-4 py-4 text-right text-sm text-muted-foreground lg:table-cell">
+                                      {formatLarge(item.totalVolume)}
+                                    </td>
+                                    <td className="hidden px-4 py-4 text-center sm:table-cell">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`${item.alertsEnabled ? "Disable" : "Enable"} alerts for ${item.name}`}
+                                        onClick={() => toggleAlert(item.id, item.alertsEnabled)}
+                                      >
+                                        {item.alertsEnabled
+                                          ? <Bell className="h-4 w-4 text-blue-500" />
+                                          : <BellOff className="h-4 w-4 text-muted-foreground" />}
+                                      </Button>
+                                    </td>
+                                    <td className="hidden px-4 py-4 text-center sm:table-cell">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={`Remove ${item.name}`}
+                                        onClick={() => removeItem(item.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </>
               )}

@@ -112,7 +112,7 @@ function AlertsPageComponent() {
             isTriggered: true,
             isActive: false,
             triggeredAt: new Date().toISOString(),
-          }).catch(() => {});
+          }).catch(() => { });
         }
       }
     });
