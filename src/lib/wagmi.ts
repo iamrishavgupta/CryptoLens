@@ -25,6 +25,7 @@ const appName = process.env.NEXT_PUBLIC_APP_NAME || "CryptoLens";
 export const wagmiConfig = createConfig(
   getDefaultConfig({
     walletConnectProjectId: projectId,
+    enableFamily: false,
     appName,
     appDescription:
       "Cryptocurrency analytics, portfolio tracking, and Web3 wallet tools",

@@ -86,14 +86,9 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   const walletControl = (desktopBreakpoint: "md" | "xl") => (
-    <>
-      <div className={desktopBreakpoint === "md" ? "md:hidden" : "xl:hidden"}>
-        <WalletConnect compact />
-      </div>
-      <div className={desktopBreakpoint === "md" ? "hidden md:block" : "hidden xl:block"}>
-        <WalletConnect />
-      </div>
-    </>
+    <div className={desktopBreakpoint === "md" ? "hidden md:block" : "hidden xl:block"}>
+      <WalletConnect />
+    </div>
   );
 
   const userMenu = (mobile = false) => {
@@ -144,14 +139,14 @@ export const Header: React.FC<HeaderProps> = ({
     );
   };
 
-  const authButtons = (mobile = false) => {
+  const authButtons = () => {
     if (user) return null;
     return (
-      <div className={`items-center gap-1 ${mobile ? "flex md:hidden" : "hidden md:flex"}`}>
+      <div className="flex items-center gap-1">
         <Button variant="ghost" size="sm" asChild className="px-2 text-xs sm:px-3 sm:text-sm">
           <Link href="/login">Sign In</Link>
         </Button>
-        <Button size="sm" asChild className="hidden whitespace-nowrap px-2 text-xs min-[390px]:inline-flex sm:px-3 sm:text-sm">
+        <Button size="sm" asChild className="whitespace-nowrap px-2 text-xs sm:px-3 sm:text-sm">
           <Link href="/register">Sign Up</Link>
         </Button>
       </div>
@@ -183,7 +178,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="flex-shrink-0 xl:hidden"
+                className="flex-shrink-0 lg:hidden"
                 aria-label="Toggle navigation"
                 onClick={() => setIsMobileMenuOpen?.(!isMobileMenuOpen)}
               >
@@ -192,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Logo />
             </div>
 
-            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
+            <div className="flex flex-shrink-0 items-center gap-0.5 sm:gap-2">
               {user && (
                 <Button variant="ghost" size="sm" asChild className="hidden lg:flex">
                   <Link href="/portfolio" className="flex items-center gap-1">
@@ -200,13 +195,14 @@ export const Header: React.FC<HeaderProps> = ({
                   </Link>
                 </Button>
               )}
-              {walletControl("md")}
-              <ThemeToggle />
+              {user && walletControl("md")}
+              <div className="hidden md:block">
+                <ThemeToggle />
+              </div>
               {notificationButton(true)}
               {userMenu(false)}
               {userMenu(true)}
-              {authButtons(false)}
-              {authButtons(true)}
+              {authButtons()}
             </div>
           </div>
         </div>
@@ -223,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="flex-shrink-0 md:hidden"
+                className="flex-shrink-0 lg:hidden"
                 aria-label="Toggle navigation"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
@@ -262,13 +258,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </Button>
               </>
             )}
-            {walletControl("xl")}
-            <ThemeToggle />
+            {user && walletControl("xl")}
+            <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
             <div className="hidden sm:block">{notificationButton()}</div>
             {userMenu(false)}
             {userMenu(true)}
-            {authButtons(false)}
-            {authButtons(true)}
+            {authButtons()}
           </div>
         </div>
       </div>
